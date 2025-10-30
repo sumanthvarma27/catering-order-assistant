@@ -1,0 +1,25 @@
+# dependencies & builds
+node_modules/
+.next/
+dist/
+coverage/
+
+# env & logs
+.env
+.env.*
+*.log
+
+# OS/editor
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# lockfiles (keep only one if you use it)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+.env.local
+.env
+

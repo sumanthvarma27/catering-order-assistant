@@ -1,0 +1,116 @@
+import { NextResponse } from 'next/server';
+import { OpenAI } from 'openai';
+import axios from 'axios';
+import { findSimilarDishes, Dish } from '@/lib/menuHelper';
+
+// --- Types ---
+interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+interface OrderInfo {
+  adults?: number;
+  kids?: number;
+  eventDate?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  dishes?: string[];
+}
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const SYSTEM_PROMPT = `
+You are the Royal Biryani Assistant 🍽️, a friendly catering expert...
+(keep the same prompt body here)
+`;
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { messages }: { messages: ChatMessage[] } = body;
+
+    // ---- Fetch Menu Context ----
+    let menu: Dish[] = [];
+    try {
+      const res = await axios.get<Dish[]>(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/menu`);
+      menu = res.data;
+    } catch {
+      console.warn('⚠️ Menu fetch failed — using fallback sample menu.');
+      const fallback = await import('@/app/api/menu/route');
+      const { GET } = fallback;
+      const mock = await GET();
+      menu = (await mock.json()) as Dish[];
+    }
+
+    // ---- Detect Dish Mentions ----
+    const lastUser = messages[messages.length - 1]?.content.toLowerCase() ?? '';
+    const similarDishes = findSimilarDishes(menu, lastUser);
+    let menuContext = 'MENU (for reference):\n' + JSON.stringify(menu, null, 2);
+    if (similarDishes.length > 0) {
+      menuContext += `\n\nSimilar Dish Suggestions for this user message:\n${JSON.stringify(similarDishes, null, 2)}`;
+    }
+
+    // ---- Create Completion ----
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.7,
+      max_tokens: 700,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT + '\n\n' + menuContext },
+        ...messages,
+      ],
+    });
+
+    const assistantMessage = completion.choices[0].message?.content ?? '';
+
+    // ---- Extract Structured Order Info ----
+    const orderInfo = extractOrderInfo([
+      ...messages,
+      { role: 'assistant', content: assistantMessage },
+    ]);
+
+    return NextResponse.json({
+      message: assistantMessage,
+      orderInfo,
+    });
+  } catch (err) {
+    console.error('Chat API error:', err);
+    return NextResponse.json({ error: 'Failed to process chat' }, { status: 500 });
+  }
+}
+
+// ---- Helper ----
+function extractOrderInfo(messages: ChatMessage[]): OrderInfo | null {
+  const text = messages.map((m) => m.content).join(' ').toLowerCase();
+  const info: OrderInfo = {};
+
+  const adultsMatch = text.match(/(\d+)\s*(adult|people|guest)s?/);
+  if (adultsMatch) info.adults = parseInt(adultsMatch[1]);
+
+  const kidsMatch = text.match(/(\d+)\s*(kid|child)ren?/);
+  if (kidsMatch) info.kids = parseInt(kidsMatch[1]);
+
+  const dateMatch = text.match(
+    /(tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\/\d{1,2}|\d{4}-\d{2}-\d{2})/
+  );
+  if (dateMatch) info.eventDate = dateMatch[1];
+
+  const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/);
+  if (emailMatch) info.email = emailMatch[0];
+
+  const phoneMatch = text.match(/\d{3}[-.\s]?\d{3}[-.\s]?\d{4}/);
+  if (phoneMatch) info.phone = phoneMatch[0];
+
+  const nameMatch = text.match(/\b(my name is|i am|this is)\s+([a-z]+(\s[a-z]+)*)/i);
+  if (nameMatch) info.name = nameMatch[2];
+
+  const dishKeywords = ['biryani', 'paneer', 'chicken', 'samosa', 'gulab', 'rasmalai', 'butter', 'rice', 'naan'];
+  const dishes = dishKeywords.filter((d) => text.includes(d));
+  if (dishes.length > 0) info.dishes = dishes;
+
+  return Object.keys(info).length > 0 ? info : null;
+}
