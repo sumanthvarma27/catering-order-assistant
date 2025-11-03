@@ -1,134 +1,67 @@
 import { NextResponse } from 'next/server';
-import { OpenAI } from 'openai';
-import axios from 'axios';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-interface Message {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
-interface MenuItem {
-  name: string;
-  category: string;
-  price: number;
-  description: string;
-}
-
-const SYSTEM_PROMPT = `You are an expert catering assistant for Royal Biryani House, a premium Indian restaurant specializing in authentic biryani and Indian cuisine.
-
-YOUR ROLE:
-- Help customers plan catering orders for their events
-- Provide warm, professional, and personalized service
-- Ask thoughtful questions to understand their needs
-- Offer menu recommendations based on event type and guest count
-- Provide pricing estimates and tray size suggestions
-
-KEY INFORMATION TO GATHER:
-1. Event type (wedding, corporate, birthday, etc.)
-2. Number of guests
-3. Event date and time
-4. Dietary restrictions or preferences
-5. Budget considerations
-6. Delivery location
-
-COMMUNICATION STYLE:
-- Be warm, friendly, and enthusiastic
-- Use emojis sparingly and appropriately 🍽️ ✨
-- Keep responses concise (2-4 sentences max)
-- Ask one question at a time
-- Show genuine interest in making their event special
-
-MENU RECOMMENDATIONS:
-- Suggest appropriate portions based on guest count
-- Recommend complementary dishes
-- Highlight signature items like Royal Biryani
-- Mention vegetarian and non-vegetarian options
-- Consider the event type when suggesting menu items
-
-Always maintain the premium, royal brand image while being approachable and helpful.`;
-
+// For testing without OpenAI - gives predetermined responses
 export async function POST(req: Request) {
   try {
-    const { messages }: { messages: Message[] } = await req.json();
+    const body = await req.json();
+    const { messages } = body;
+    
+    // Get the last user message
+    const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
+    
+    let responseMessage = '';
+    
+    // Simple response logic based on keywords
+    if (lastUserMessage.includes('menu')) {
+      responseMessage = `We offer a wide variety of authentic Indian dishes:
 
-    // Validate messages
-    if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: 'Invalid messages format' },
-        { status: 400 }
-      );
-    }
+🍛 APPETIZERS: Chicken 65, Paneer Tikka, Samosas
+🍲 ENTREES: Butter Chicken, Paneer Butter Masala, Goat Curry
+🍚 BIRYANI: Chicken Dum Biryani, Veg Biryani, Goat Biryani
+🍞 BREADS: Naan, Garlic Naan, Roti
 
-    // Fetch menu context from backend
-    let menuContext = '';
-    try {
-      const menuRes = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/menu`,
-        { timeout: 5000 }
-      );
+What type of event are you planning?`;
+    } else if (lastUserMessage.includes('price') || lastUserMessage.includes('cost')) {
+      responseMessage = `Our catering prices depend on tray size:
       
-      if (menuRes.data && Array.isArray(menuRes.data)) {
-        menuContext = '\n\nAVAILABLE MENU ITEMS:\n' + 
-          menuRes.data.map((item: MenuItem) => 
-            `- ${item.name} (${item.category}): $${item.price} - ${item.description}`
-          ).join('\n');
-      }
-    } catch (menuError) {
-      console.error('Menu fetch error:', menuError);
-      menuContext = '\n\nNote: Full menu details are temporarily unavailable, but you can still provide general catering assistance.';
+- Half Tray (serves 5-8): Starting at $75
+- Medium Tray (serves 10-15): Starting at $110  
+- Large Tray (serves 15-25): Starting at $140
+
+How many guests will you be serving?`;
+    } else if (lastUserMessage.match(/\d+\s*(people|guests)/)) {
+      const match = lastUserMessage.match(/(\d+)/);
+      const guests = match ? parseInt(match[1]) : 50;
+      
+      responseMessage = `For ${guests} guests, I recommend:
+      
+- 2 Large trays of Appetizers (Chicken 65 + Paneer Tikka)
+- 3 Large trays of Entrees (Butter Chicken, Paneer Masala, Dal)
+- 2 Large trays of Biryani
+- Naan bread for all guests
+- 1 Large tray of dessert
+
+This would cost approximately $${guests * 15}. Would you like to customize this order?`;
+    } else {
+      responseMessage = `Welcome to Royal Biryani House Catering! 
+
+I can help you plan the perfect order for your event. To get started, could you tell me:
+
+1. How many guests will you be serving?
+2. What type of event is this?
+3. Do you have any dietary preferences (vegetarian, etc.)?
+4. When do you need the catering?`;
     }
-
-    // Prepare messages for OpenAI with proper typing
-    const openaiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-      { role: 'system', content: SYSTEM_PROMPT + menuContext },
-      ...messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-    ];
-
-    // Call OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.7,
-      max_tokens: 500,
-      messages: openaiMessages,
+    
+    return NextResponse.json({
+      message: responseMessage,
     });
-
-    const response = completion.choices[0].message?.content || 
-      'I apologize, but I\'m having trouble processing your request. Could you please try again?';
-
-    return NextResponse.json({ 
-      message: response,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (err) {
-    console.error('Chat API Error:', err);
-
-    const error = err as { code?: string };
-
-    // Handle specific OpenAI errors
-    if (error.code === 'insufficient_quota') {
-      return NextResponse.json(
-        { error: 'Service temporarily unavailable. Please try again later.' },
-        { status: 503 }
-      );
-    }
-
-    if (error.code === 'invalid_api_key') {
-      return NextResponse.json(
-        { error: 'Configuration error. Please contact support.' },
-        { status: 500 }
-      );
-    }
-
-    // Generic error response
+    
+  } catch (error) {
+    console.error('Chat API error:', error);
     return NextResponse.json(
-      { error: 'Failed to process chat request. Please try again.' },
-      { status: 500 }
+      { message: 'I apologize for the error. Please try again or call us at (555) 123-4567.' },
+      { status: 200 }
     );
   }
 }

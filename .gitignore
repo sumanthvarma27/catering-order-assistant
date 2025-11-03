@@ -1,18 +1,28 @@
-# dependencies & builds
+# Node
 node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build outputs
 .next/
 dist/
-coverage/
+build/
 
-# environment files
+# Environment files
 .env
 .env.local
+.env.production
+.env.development
 
-# allow example env
-!.env.example
-
-# OS/editor junk
+# System files
 .DS_Store
-.vscode/
-.idea/
+Thumbs.db
+
+# Logs
 *.log
+
+# PostgreSQL dumps
+*.sql
+
+# VS Code
+.vscode/
