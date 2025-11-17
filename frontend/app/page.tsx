@@ -1,6 +1,6 @@
 'use client';
 
-import MenuSummary from declare module "../components/MenuSummary";
+import MenuSummary from "../components/MenuSummary";
 
 const RoyalChatInterface = () => {
   return (
@@ -9,7 +9,6 @@ const RoyalChatInterface = () => {
     </div>
   );
 };
-
 
 export default function CateringPage() {
   return (
@@ -24,12 +23,10 @@ export default function CateringPage() {
       </header>
 
       <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left — Chat */}
         <section className="bg-white/80 rounded-3xl border border-amber-100 shadow-royal p-4">
           <RoyalChatInterface />
         </section>
 
-        {/* Right — Order Summary */}
         <section className="bg-white/80 rounded-3xl border border-amber-100 shadow-royal p-4 flex flex-col justify-between">
           <MenuSummary />
         </section>
