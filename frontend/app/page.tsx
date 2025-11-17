@@ -1,14 +1,7 @@
 'use client';
 
+import RoyalChatInterface from "../components/RoyalChatInterface";
 import MenuSummary from "../components/MenuSummary";
-
-const RoyalChatInterface = () => {
-  return (
-    <div className="p-4 text-gray-500">
-      Chat interface component is not available — placeholder.
-    </div>
-  );
-};
 
 export default function CateringPage() {
   return (

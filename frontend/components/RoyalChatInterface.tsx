@@ -5,8 +5,6 @@ import { motion } from 'framer-motion';
 import { IoSend, IoClose, IoCheckmarkDone } from 'react-icons/io5';
 import { FaRedo, FaStar } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
-import { useClientTime } from './hooks/useClientTime'; // add at top
-
 
 export default function RoyalChatInterface() {
   const [messages, setMessages] = useState<{ role: string; content: string; id: number }[]>([
@@ -24,7 +22,7 @@ export default function RoyalChatInterface() {
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const [isOpen, setIsOpen] = useState(true);
-  const currentTime = useClientTime();
+
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -196,7 +194,7 @@ export default function RoyalChatInterface() {
                 <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                   {m.role === 'assistant' && (
                     <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                      {currentTime ? <span>{currentTime}</span> : null}
+
                     </div>
                   )}
                 </div>
