@@ -1,45 +1,43 @@
 'use client';
 
-import RoyalChatInterface from './components/RoyalChatInterface';
+import MenuSummary from declare module "../components/MenuSummary";
 
-export default function CateringDashboard() {
+const RoyalChatInterface = () => {
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#fdfaf5] via-[#f9f4ec] to-[#f6eee0] p-10">
-      {/* Page Heading */}
-      <header className="mb-10 text-center">
-        <h2 className="text-5xl font-heading text-copper tracking-tight mb-2">
-          Catering Dashboard
-        </h2>
+    <div className="p-4 text-gray-500">
+      Chat interface component is not available — placeholder.
+    </div>
+  );
+};
+
+
+export default function CateringPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#fdfaf5] via-[#faf2e6] to-[#f7ebd7] p-6">
+      <header className="mb-8 text-center">
+        <h1 className="text-4xl font-heading text-copper font-bold tracking-tight mb-2">
+          Royal Catering Assistant
+        </h1>
+        <p className="text-gray-600 text-sm">
+          Chat with our AI assistant and review your final catering selections.
+        </p>
       </header>
 
-      {/* Chat Section - moved to top */}
-      <section
-        id="chat"
-        className="bg-white/80 backdrop-blur-xl border border-amber-100 rounded-3xl shadow-royal overflow-hidden mb-12 animate-fadeInUp"
-      >
-        <RoyalChatInterface />
-      </section>
+      <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left — Chat */}
+        <section className="bg-white/80 rounded-3xl border border-amber-100 shadow-royal p-4">
+          <RoyalChatInterface />
+        </section>
 
-      {/* Overview Section */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-white/90 rounded-2xl border border-amber-100 shadow-royal p-6 hover:shadow-royal-hover transition-all duration-300">
-          <h3 className="text-lg font-semibold text-copper mb-2">Active Chats</h3>
-          <p className="text-4xl font-bold text-brown">12</p>
-          <p className="text-sm text-gray-600">Ongoing catering conversations</p>
-        </div>
+        {/* Right — Order Summary */}
+        <section className="bg-white/80 rounded-3xl border border-amber-100 shadow-royal p-4 flex flex-col justify-between">
+          <MenuSummary />
+        </section>
+      </main>
 
-        <div className="bg-white/90 rounded-2xl border border-amber-100 shadow-royal p-6 hover:shadow-royal-hover transition-all duration-300">
-          <h3 className="text-lg font-semibold text-copper mb-2">Orders This Month</h3>
-          <p className="text-4xl font-bold text-brown">48</p>
-          <p className="text-sm text-gray-600">Completed catering bookings</p>
-        </div>
-
-        <div className="bg-white/90 rounded-2xl border border-amber-100 shadow-royal p-6 hover:shadow-royal-hover transition-all duration-300">
-          <h3 className="text-lg font-semibold text-copper mb-2">Customer Satisfaction</h3>
-          <p className="text-4xl font-bold text-brown">98%</p>
-          <p className="text-sm text-gray-600">Based on client feedback</p>
-        </div>
-      </section>
+      <footer className="text-center text-sm text-gray-500 mt-10">
+        © {new Date().getFullYear()} Royal Biryani House — Catering Division
+      </footer>
     </div>
   );
 }
