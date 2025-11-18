@@ -13,20 +13,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.CAT_DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo "Host *" >> ~/.ssh/config
-          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+      - name: Add SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.CAT_DEPLOY_SSH_KEY }}
 
       - name: Deploy to CAT Server
         run: |
-          ssh -i ~/.ssh/id_ed25519 root@${{ secrets.CAT_SERVER_IP }} "
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.CAT_SERVER_IP }} "
             cd /var/www/catering-assistant/frontend &&
             git pull &&
             npm install &&
-            npm run build &&
-            pm2 restart cat-frontend
+            npm run build ||
+            npm install &&
+            pm2 restart cat-frontend || pm2 start \"npm start\" --name cat-frontend
           "

@@ -24,14 +24,13 @@ router.patch('/:orderId/status', async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
-    
+
     const query = `
       UPDATE orders 
       SET status = $1, updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
       RETURNING *
     `;
-    
     const result = await db.query(query, [status, orderId]);
     res.json(result.rows[0]);
   } catch (error) {
@@ -40,22 +39,52 @@ router.patch('/:orderId/status', async (req, res) => {
   }
 });
 
-// Create new order
+// Confirm order (from chat interface)
+router.post('/confirm', async (req, res) => {
+  try {
+    const { items, total, timestamp } = req.body;
+
+    // Store the order confirmation
+    const orderData = {
+      items,
+      total,
+      timestamp,
+      status: 'pending_callback',
+      created_at: new Date(),
+    };
+
+    // You can store this in a pending_orders table or send notification
+    console.log('Order confirmed:', orderData);
+
+    // TODO: Send email/SMS notification to restaurant
+    // TODO: Store in database for tracking
+
+    res.json({ 
+      success: true, 
+      message: 'Order received. We will contact you shortly.',
+      orderData 
+    });
+  } catch (error) {
+    console.error('Error confirming order:', error);
+    res.status(500).json({ error: 'Failed to confirm order' });
+  }
+});
+
+// Create new order (existing endpoint)
 router.post('/', async (req, res) => {
   const client = await db.connect();
-  
   try {
     await client.query('BEGIN');
-    
+
     const {
       customerName, customerEmail, customerPhone,
       eventDate, eventTime, adults, kids,
       items, deliveryNeeded, deliveryAddress,
       specialInstructions, subtotal, totalAmount
     } = req.body;
-    
+
     const orderNumber = 'CAT' + Date.now().toString().slice(-10);
-    
+
     const orderQuery = `
       INSERT INTO orders (
         order_number, customer_name, customer_email, customer_phone,
@@ -65,17 +94,17 @@ router.post('/', async (req, res) => {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending')
       RETURNING *
     `;
-    
+
     const orderValues = [
       orderNumber, customerName, customerEmail, customerPhone,
       eventDate, eventTime, adults, kids || 0,
       deliveryNeeded, deliveryAddress, subtotal, totalAmount,
       specialInstructions
     ];
-    
+
     const orderResult = await client.query(orderQuery, orderValues);
     const order = orderResult.rows[0];
-    
+
     for (const item of items) {
       await client.query(
         `INSERT INTO order_items (
@@ -86,10 +115,9 @@ router.post('/', async (req, res) => {
          item.quantity, item.unitPrice, item.totalPrice]
       );
     }
-    
+
     await client.query('COMMIT');
     res.json({ success: true, order });
-    
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error creating order:', error);

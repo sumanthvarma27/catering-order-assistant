@@ -5,8 +5,13 @@ import { motion } from 'framer-motion';
 import { IoSend, IoClose, IoCheckmarkDone } from 'react-icons/io5';
 import { FaRedo, FaStar } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
+import { TrayItem } from '@/lib/types';
 
-export default function RoyalChatInterface() {
+interface RoyalChatInterfaceProps {
+  onDetailsComplete: (items: TrayItem[]) => void;
+}
+
+export default function RoyalChatInterface({ onDetailsComplete }: RoyalChatInterfaceProps) {
   const [messages, setMessages] = useState<{ role: string; content: string; id: number }[]>([
     {
       role: 'assistant',
@@ -19,10 +24,10 @@ export default function RoyalChatInterface() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [detailsCollected, setDetailsCollected] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const [isOpen, setIsOpen] = useState(true);
-
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -45,13 +50,16 @@ export default function RoyalChatInterface() {
     setIsTyping(true);
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('http://localhost:3001/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [...messages, userMsg] }),
       });
 
-      if (!res.ok) throw new Error('Failed to send message');
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
 
       setTimeout(() => {
@@ -60,8 +68,15 @@ export default function RoyalChatInterface() {
           { role: 'assistant', content: data.message, id: Date.now() },
         ]);
         setIsTyping(false);
+
+        // Check if details are complete and cart should be shown
+        if (data.detailsComplete && data.menuItems) {
+          setDetailsCollected(true);
+          onDetailsComplete(data.menuItems);
+        }
       }, 800);
-    } catch {
+    } catch (error) {
+      console.error('Chat error:', error);
       setMessages((prev) => [
         ...prev,
         {
@@ -85,6 +100,7 @@ export default function RoyalChatInterface() {
       },
     ]);
     setInput('');
+    setDetailsCollected(false);
   };
 
   const quickReplies = [
@@ -190,15 +206,6 @@ export default function RoyalChatInterface() {
                   <IoCheckmarkDone size={16} className="text-white/80" />
                 </div>
               )}
-              {m.role === 'assistant' && (
-                <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                  {m.role === 'assistant' && (
-                    <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </motion.div>
         ))}
@@ -255,6 +262,22 @@ export default function RoyalChatInterface() {
                 </motion.button>
               ))}
             </div>
+          </motion.div>
+        )}
+
+        {detailsCollected && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-4 text-center"
+          >
+            <div className="flex items-center justify-center gap-2 text-green-700 font-semibold mb-2">
+              <span className="text-2xl">✅</span>
+              <span>Details Collected Successfully!</span>
+            </div>
+            <p className="text-sm text-green-600">
+              Your personalized catering recommendations are now available in the cart →
+            </p>
           </motion.div>
         )}
 

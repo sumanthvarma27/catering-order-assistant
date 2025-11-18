@@ -2,17 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
-import path from 'path';
-import { exec } from 'child_process'; // ✅ Added for deployment
-import { Router } from 'express';
-
-const deployRouter = Router();
-
-// Add your deployment route handling logic here
-deployRouter.post('/deploy', (req, res) => {
-  // Add your deployment logic here
-  res.json({ status: 'Deployment initiated' });
-});
 
 dotenv.config();
 
@@ -47,11 +36,16 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
-// ✅ Webhook route for GitHub auto-deploy
+// Import routes (make sure paths are correct)
 import ordersRouter from './routes/orders';
+import chatRouter from './routes/chat';
+
+// Use routes
 app.use('/api/orders', ordersRouter);
+app.use('/api/chat', chatRouter);
 
 app.listen(port, () => {
   console.log(`✅ Server running on http://localhost:${port}`);
   console.log(`📊 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+  console.log(`🤖 OpenAI API: ${process.env.OPENAI_API_KEY ? 'Configured' : 'Not configured'}`);
 });
